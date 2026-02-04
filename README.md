@@ -77,6 +77,7 @@ Bonus Challenges
 Implement a second CGI handler.
 Create an admin dashboard or server metrics endpoint.
 Example Repository Structure
+```bash
 /rust-server
 ├── /src
 │   ├── main.rs           # Entry point
@@ -91,6 +92,8 @@ Example Repository Structure
 ├── config.yaml           # Server config
 ├── README.md             # Project overview and setup
 ├── error_pages/          # Static error page files
+```
+
 Tips
 Avoid hardcoding; use the config file.
 Validate configs at startup.
