@@ -1,16 +1,16 @@
 # rust-localserver
 
-Overview
+## Overview
 Finally, you are going to understand how the internet works from the server side. The Hypertext Transfer Protocol was created in order to ensure a reliable way to communicate on a request/response basis.
 
 This protocol is used by servers and clients (usually browsers) to serve content, and it is the backbone of the World Wide Web. Still, it is also used in many other cases that are far beyond the scope of this exercise.
 
 For this project, you must use Rust.
 
-Role Play
+## Role Play
 You are a backend engineer at a startup building a lightweight web server to handle internal APIs and static content with minimal dependencies. Your goal is to deliver a highly available, crash-proof solution that can be extended to support dynamic content via CGI scripts and configured to suit multiple environments.
 
-Learning Objective
+## Learning Objective
 By the end of this project, learners will be able to:
 
 Design and implement a custom HTTP/1.1-compliant server in Rust
@@ -30,10 +30,10 @@ Use Rust’s standard library together with the mio crate (or similar) for non-b
 Make use of an event-driven API for handling connections.
 You cannot use established server frameworks or asynchronous runtimes (e.g., axum, rocket, hyper, async-std, tokio).
 
-The Server
+## The Server
 Your goal is to write your own HTTP server to serve static web pages to browsers.
 
-It must:
+## It must:
 
 Never crash.
 Timeout long requests.
@@ -94,14 +94,16 @@ Example Repository Structure
 ├── error_pages/          # Static error page files
 ```
 
-Tips
+## Tips
 Avoid hardcoding; use the config file.
 Validate configs at startup.
 Sanitize inputs for CGI.
 Modularize components.
 Use thread-safe data structures.
 Prevent file descriptor leaks.
-Resources
+
+## Resources
+```zsh
 RFC 2616 – HTTP/1.1 Specification
 mio Docs
 epoll Example
