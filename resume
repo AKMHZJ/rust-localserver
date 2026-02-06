@@ -1,0 +1,126 @@
+# Study Guide: Rust Local Server Project
+
+To successfully implement this HTTP/1.1 server, you should focus on the following key areas:
+
+## 1. HTTP/1.1 Protocol Basics (RFC 2616)
+*   **Request Structure:** Method, URI, Protocol Version, Headers, and Body.
+*   **Response Structure:** Protocol Version, Status Code (200, 404, 500, etc.), Reason Phrase, Headers, and Body.
+*   **Methods:** Deeply understand `GET`, `POST`, and `DELETE`.
+*   **Headers:** `Host` (for virtual hosting), `Content-Length`, `Transfer-Encoding: chunked`, `Connection: keep-alive`, `Cookie`, and `Set-Cookie`.
+*   **Status Codes:** Know when to use 400 (Bad Request), 403 (Forbidden), 404 (Not Found), 405 (Method Not Allowed), 413 (Payload Too Large), and 500 (Internal Server Error).
+
+## 2. Non-Blocking I/O & Event-Driven Architecture
+*   **The Problem:** Traditional blocking I/O uses one thread per connection, which doesn't scale well and is explicitly forbidden by the "one thread" requirement.
+*   **The Solution:** I/O Multiplexing (`epoll` on Linux, `kqueue` on BSD/macOS).
+*   **`mio` Crate:** Learn how to use `Poll`, `Registry`, and `Events`. Understand how to register sockets for `READABLE` or `WRITABLE` events and how to handle them in a single-loop "Reactor" pattern.
+*   **State Machines:** Since a read might be partial (non-blocking), you need a way to store the state of each client's request/response progress.
+
+## 3. Rust Socket Programming
+*   **`std::net::TcpListener` and `std::net::TcpStream`:** How to bind to multiple ports and accept connections.
+*   **Setting Non-blocking:** Crucial for use with `mio`.
+*   **Error Handling:** Handling `WouldBlock` errors, which are expected in non-blocking I/O.
+
+## 4. CGI (Common Gateway Interface)
+*   **`std::process::Command`:** How to spawn child processes (e.g., Python scripts).
+*   **Environment Variables:** Setting `PATH_INFO`, `QUERY_STRING`, `REQUEST_METHOD`, etc., as per the CGI spec.
+*   **Pipes:** Communicating with the CGI process via `stdin` (for POST data) and `stdout` (to get the response).
+
+## 5. Configuration & System Design
+*   **Config Parsing:** How to represent the server configuration (ports, routes, limits) in Rust structs and parse them from a file (e.g., using `serde` with `serde_yaml`).
+*   **Routing Logic:** Matching a request URI to a specific directory root or CGI script based on rules.
+*   **File Descriptor Management:** Ensuring sockets and files are closed properly to avoid leaks (especially in a long-running server).
+
+## 6. Testing & Performance
+*   **Stress Testing:** Using `siege` to simulate heavy traffic.
+*   **Manual Testing:** Using `curl -v` or browser developer tools to inspect headers.
+*   **Security:** Sanitizing paths (preventing `../` directory traversal attacks) and handling malformed requests without crashing.
+
+## 7. Project Structure (Recommended)
+```text
+/rust-server
+├── /src
+│   ├── main.rs           # Entry point: initializes config and starts the event loop.
+│   ├── server.rs         # Server lifecycle: manages the Poll loop and connections.
+│   ├── router.rs         # Routing: matches URIs to filesystem paths or CGI.
+│   ├── cgi.rs            # CGI execution: handles process spawning and I/O.
+│   ├── config.rs         # Configuration: parses and validates the config file.
+│   ├── error.rs          # Errors: generates HTTP error responses (404, 500, etc.).
+│   └── utils/
+│       ├── session.rs    # Sessions: logic for managing user sessions.
+│       └── cookie.rs     # Cookies: utilities for parsing and setting cookies.
+├── config.yaml           # The server configuration file.
+├── error_pages/          # Custom HTML files for HTTP error status codes.
+└── tests/                # Integration and unit tests.
+```
+
+## 8. How to Run
+1.  **Build:** `cargo build --release`
+2.  **Run:** `cargo run -- config.yaml` (Assuming your `main.rs` takes the config path as an argument).
+3.  **Permissions:** Ensure the server has permission to bind to the ports specified in `config.yaml` and read the root directories.
+
+## 9. How to Test
+*   **Functional Testing:** 
+    *   Use `curl -v http://localhost:[PORT]/path` to verify headers and status codes.
+    *   Test file uploads: `curl -F "file=@localfile.txt" http://localhost:[PORT]/upload`.
+    *   Test different methods: `curl -X DELETE`, `curl -X POST`.
+*   **Browser Testing:** Open `http://localhost:[PORT]` in a browser and check the Developer Tools (Network tab) for correct header exchange.
+*   **CGI Testing:** Access a `.py` or `.pl` script and ensure it executes and returns the expected output.
+*   **Stress Testing:** Use `siege -b http://localhost:[PORT]` to ensure the server handles concurrency and reaches 99.5% availability.
+*   **Memory/Leak Check:** Monitor the process using `top` or `htop` during stress tests to ensure stable memory usage and file descriptor counts.
+
+
+
+
+## Tests all
+
+1. Test Static Content (GET)
+  Check if the server serves the default index page.
+   1 curl -v http://localhost:8080/
+  Expected: You should see the HTML from `static/index.html` and a `200 OK`
+  status.
+
+  2. Test Error Pages (404)
+  Try to access a file that doesn't exist.
+
+
+   1 curl -v http://localhost:8080/nopage
+  Expected: You should see the content of `error_pages/404.html` and a `404 Not
+  Found` status.
+
+  3. Test Python CGI
+  Execute the script we created in cgi-bin.
+
+
+   1 curl -v http://localhost:8080/cgi-bin/hello.py
+  Expected: You should see "Hello from Python CGI!" and the environment
+  variables.
+
+  4. Test File Upload (POST)
+  Upload a small text file to the server.
+
+
+   1 echo "Hello Server" > test.txt
+   2 curl -v -X POST -H "X-Filename: my_upload.txt" --data-binary @test.txt
+     http://localhost:8080/upload
+  Expected: A `201 Created` status. You can verify it by checking the folder:
+  `ls static/uploads`.
+
+
+  5. Test File Deletion (DELETE)
+  Delete the file you just uploaded.
+   1 curl -v -X DELETE http://localhost:8080/upload/my_upload.txt
+  Expected: A `204 No Content` status. Verify with `ls static/uploads` that the
+  file is gone.
+
+  6. Stress Test (Siege)
+  If you have siege installed, test the server's stability.
+
+
+   1 siege -b http://localhost:8080/
+  Expected: The server should handle multiple requests without crashing. Aim for
+  >99.5% availability.
+
+
+  7. Browser Test
+  Open your web browser and go to http://localhost:8080.
+  Expected: The "Welcome to Rust Local Server!" page should appear.

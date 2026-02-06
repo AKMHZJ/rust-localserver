@@ -1,0 +1,25 @@
+servers:
+  - host: "127.0.0.1"
+    ports: [8080, 8081]
+    server_names: ["localhost", "test.com"]
+    error_pages:
+      404: "error_pages/404.html"
+      500: "error_pages/500.html"
+    client_max_body_size: 1048576 # 1MB
+    routes:
+      - path: "/"
+        root: "static"
+        index: "index.html"
+        methods: ["GET"]
+        autoindex: true
+      - path: "/upload"
+        root: "static/uploads"
+        methods: ["POST", "GET"]
+        allow_uploads: true
+      - path: "/cgi-bin"
+        root: "cgi-bin"
+        methods: ["GET", "POST"]
+        cgi_extensions:
+          .py: "/usr/bin/python3"
+      - path: "/old"
+        redirect: "/new"
